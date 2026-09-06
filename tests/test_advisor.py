@@ -1,4 +1,4 @@
-from speech2md.advisor import MODELS, fits, recommend, render_table
+from speech2md.advisor import MODELS, fit_status, recommend, render_table
 from speech2md.hardware import HardwareInfo, parse_nvidia_smi
 
 GTX_1060 = HardwareInfo(gpu_name="GTX 1060", vram_gb=6.0, ram_gb=32.0, cpu_cores=12)
@@ -23,20 +23,45 @@ def test_tiny_gpu_falls_back_to_cpu_recommendation():
     assert recommend(HardwareInfo(gpu_name="x", vram_gb=1.0, ram_gb=16)) == "large-v3-turbo"
 
 
-def test_fits_accounts_for_overhead():
+def test_fit_status_accounts_for_overhead():
     large = next(m for m in MODELS if m.name == "large-v3")
-    assert fits(large, GTX_1060)
-    assert not fits(large, HardwareInfo(gpu_name="x", vram_gb=3.5, ram_gb=16))
+    assert fit_status(large, GTX_1060) == "yes"
+    assert fit_status(large, HardwareInfo(gpu_name="x", vram_gb=3.5, ram_gb=16)) == "NO (VRAM)"
+
+
+def test_fit_status_low_ram_cpu():
+    large = next(m for m in MODELS if m.name == "large-v3")
+    assert fit_status(large, HardwareInfo(ram_gb=4.0, cpu_cores=4)) == "NO (RAM)"
+
+
+def _model_rows(table: str) -> dict[str, str]:
+    prefixes = ("large", "distil", "medium", "small")
+    return {line.split()[0]: line for line in table.splitlines() if line.startswith(prefixes)}
 
 
 def test_render_table_marks_fit_and_languages():
     table = render_table(HardwareInfo(gpu_name="x", vram_gb=2.5, ram_gb=16))
     assert "English ONLY" in table
-    prefixes = ("large", "distil", "medium", "small")
-    model_rows = [line for line in table.splitlines() if line.startswith(prefixes)]
-    lines = {line.split()[0]: line for line in model_rows}
-    assert lines["large-v3"].rstrip().endswith("NO")
-    assert lines["small"].rstrip().endswith("yes")
+    lines = _model_rows(table)
+    assert "NO (VRAM)" in lines["large-v3"]
+    assert "yes" in lines["small"]
+
+
+def test_render_table_cpu_only_laptop():
+    # A GPU-less laptop: everything fits RAM-wise, but heavy models must not show a bare 'yes'
+    # while the recommendation points at turbo (user-reported inconsistency).
+    table = render_table(NO_GPU_BIG_RAM)
+    lines = _model_rows(table)
+    assert "slow on CPU" in lines["large-v3"]
+    assert "slow on CPU" in lines["medium"]
+    assert "yes" in lines["large-v3-turbo"]
+    assert lines["large-v3-turbo"].endswith("← recommended")
+
+
+def test_render_table_marks_recommended_on_gpu():
+    lines = _model_rows(render_table(GTX_1060))
+    assert lines["large-v3"].endswith("← recommended")
+    assert not lines["small"].endswith("← recommended")
 
 
 def test_first_run_dialog_enter_picks_recommended(monkeypatch, capsys):

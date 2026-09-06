@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "speech2md"
-version = "0.2.0"
+version = "0.2.1"
 description = "Local speech-to-text that turns audio into clean Markdown notes. Powered by Whisper large-v3, runs on your GPU, no cloud."
 readme = "README.md"
 license = { text = "MIT" }
