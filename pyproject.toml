@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech2md"
+version = "0.2.0"
+description = "Local speech-to-text that turns audio into clean Markdown notes. Powered by Whisper large-v3, runs on your GPU, no cloud."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Fedor Budnikov" }]
+requires-python = ">=3.10"
+keywords = ["whisper", "speech-to-text", "transcription", "markdown", "faster-whisper", "asr"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+    "faster-whisper>=1.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+cuda = [
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+speech2md = "speech2md.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Arshont/speech2md"
+Issues = "https://github.com/Arshont/speech2md/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/speech2md/engine.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
